@@ -2,55 +2,80 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Testing Grounds</title>
+<title>Version 0.0</title>
+
+<!-- Basic Engine --> 
 <script src="js/three.js"></script>
+
+<!-- Camera Controls --> 
 <script src="js/OrbitControls.js"></script>
+
 </head>
 
 <body>
 <script>
+	/* TODO
+	 * 1. Build Ships js file
+	 * 2. Work out sighting mechanism
+	 * 3. Physics
+	 * 4. Timing events
+	 * 5. Break code into more js files
+	 */
 
+	// GLOBALS
+	// Declaring basic vars
     var scene, camera, renderer;
-    var geometry, material, mesh;
     var line;
     
 	var clock = new THREE.Clock();
-  
+  	
+  	//// INITIALIZATION ////
+  	// Function calls to start the program
     init();
     animate();
 
     function init() {
-
+		
+		//// SCENE ////
+		// Create the scene
         scene = new THREE.Scene();
-
+		
+		//// CAMERA ////
+		// Create the camera and set it 1000 units back
         camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1e7 );
         camera.position.z = 1000;
         
+        // Set camera controls, limiting zoom to 10000 units
 		controls = new THREE.OrbitControls( camera );
 		controls.damping = 0.2;
 		controls.addEventListener( 'change', render );
+		controls.maxDistance = 1e4;
 		
+		//// LIGHTS ////
+		// For the sun
 		var light = new THREE.PointLight( 0xff0000, 1, 0 ); 
 		light.position.set( -1e5, 50, 0 ); 
 		scene.add( light );
-
-        box = new THREE.BoxGeometry( 10, 10, 10 );
-        box2 = new THREE.BoxGeometry( 1, 1, 1 );
-        ball = new THREE.SphereGeometry( 20, 16, 16);
-        material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-        material2 = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
 		
-		// sun
-		base = new THREE.SphereGeometry( 5000, 16, 16);
+		//// MATERIALS ////
+		var material 	= new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+        var material2 	= new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+        var material3 	= new THREE.LineBasicMaterial( { color: 0x0000ff } );
+    
+		
+		//// GEOMETRIES ////
+        var box			= new THREE.BoxGeometry( 10, 10, 10 );
+        var box2 		= new THREE.BoxGeometry( 1, 1, 1 );
+        var ball 		= new THREE.SphereGeometry( 25, 16, 16);
+        var base 		= new THREE.SphereGeometry( 5000, 16, 16);
+        var geometry	= new THREE.Geometry();
+		
+		// Sun
 		sun = new THREE.Mesh( base, material);
 		scene.add( sun );
-		sun.position.x = -1e5;
-		sun.position.y = 50;
-		sun.position.z = 0;
+		sun.position.x = -1e5;		
 		
-		
-		// stars
-
+		// Stars
 		var i, r = 1000, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
 
 		for ( i = 0; i < 250; i ++ ) {
@@ -123,30 +148,28 @@
 		cube2.position.y = 30;
 		cube2.position.z = 70;
 		
-		var material2 = new THREE.LineBasicMaterial({
-        color: 0x0000ff
-    });
-    
-    var geometry = new THREE.Geometry();
 		geometry.vertices.push(new THREE.Vector3(-100, -10, -90));
     	geometry.vertices.push(new THREE.Vector3(100, 30, 70));
     	line = new THREE.Line(geometry, material2);
-    	line.name = "laser";
     	scene.add(line);
-    
-    // initialize object to perform world/screen calculations
-	projector = new THREE.Projector();
-
+		
+		//// RENDERER ////
+		// Creates the render object, WebGL with antialiasing
         renderer = new THREE.WebGLRenderer({antialias:true});
-        renderer.setSize( (window.innerWidth-100 ), (window.innerHeight-100) );
+        renderer.setSize( (window.innerWidth-25), (window.innerHeight-25) );
         
-        controls.addEventListener('change', render);
-
+        // Add the renderer to the HTML 
         document.body.appendChild( renderer.domElement );
+        
+        //// LISTENERS ////
+        // Dynamic window resizing
+        window.addEventListener( 'resize', onWindowResize, false );
+
         
     }
     
 
+    // All actions involving a visual change occur here
     function animate() {
 
         requestAnimationFrame( animate );
@@ -159,13 +182,20 @@
         
     }
     
+    // Renders the scene after animate() is through
     function render() {
+    	
     	renderer.render( scene, camera );
     }
-    
-
-
 	
+	// Dynamically resizes the window based on current dimensions
+	function onWindowResize() {
+
+	    camera.aspect = window.innerWidth / window.innerHeight;
+	    camera.updateProjectionMatrix();
+	
+	    renderer.setSize( (window.innerWidth-25), (window.innerHeight-25) );
+	}
 </script>
 
 </body>
