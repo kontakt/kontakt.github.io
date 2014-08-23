@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Testing Grounds</title>
+<script src="js/three.js"></script>
+<script src="js/OrbitControls.js"></script>
+</head>
+
+<body>
+<script>
+
+    var scene, camera, renderer;
+    var geometry, material, mesh;
+    var line;
+    
+	var clock = new THREE.Clock();
+  
+    init();
+    animate();
+
+    function init() {
+
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1e7 );
+        camera.position.z = 1000;
+        
+		controls = new THREE.OrbitControls( camera );
+		controls.damping = 0.2;
+		controls.addEventListener( 'change', render );
+		
+		var light = new THREE.PointLight( 0xff0000, 1, 0 ); 
+		light.position.set( -1e5, 50, 0 ); 
+		scene.add( light );
+
+        box = new THREE.BoxGeometry( 10, 10, 10 );
+        box2 = new THREE.BoxGeometry( 1, 1, 1 );
+        ball = new THREE.SphereGeometry( 20, 16, 16);
+        material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+        material2 = new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+		
+		// sun
+		base = new THREE.SphereGeometry( 5000, 16, 16);
+		sun = new THREE.Mesh( base, material);
+		scene.add( sun );
+		sun.position.x = -1e5;
+		sun.position.y = 50;
+		sun.position.z = 0;
+		
+		
+		// stars
+
+		var i, r = 1000, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
+
+		for ( i = 0; i < 250; i ++ ) {
+
+			var vertex = new THREE.Vector3();
+			vertex.x = Math.random() * 2 - 1;
+			vertex.y = Math.random() * 2 - 1;
+			vertex.z = Math.random() * 2 - 1;
+			vertex.multiplyScalar( r );
+
+			starsGeometry[ 0 ].vertices.push( vertex );
+
+		}
+
+		for ( i = 0; i < 1500; i ++ ) {
+
+			var vertex = new THREE.Vector3();
+			vertex.x = Math.random() * 2 - 1;
+			vertex.y = Math.random() * 2 - 1;
+			vertex.z = Math.random() * 2 - 1;
+			vertex.multiplyScalar( r );
+
+			starsGeometry[ 1 ].vertices.push( vertex );
+
+		}
+
+		var stars;
+		var starsMaterials = [
+			new THREE.PointCloudMaterial( { color: 0x555555, size: 2, sizeAttenuation: false } ),
+			new THREE.PointCloudMaterial( { color: 0x555555, size: 1, sizeAttenuation: false } ),
+			new THREE.PointCloudMaterial( { color: 0x333333, size: 2, sizeAttenuation: false } ),
+			new THREE.PointCloudMaterial( { color: 0x3a3a3a, size: 1, sizeAttenuation: false } ),
+			new THREE.PointCloudMaterial( { color: 0x1a1a1a, size: 2, sizeAttenuation: false } ),
+			new THREE.PointCloudMaterial( { color: 0x1a1a1a, size: 1, sizeAttenuation: false } )
+		];
+
+		for ( i = 10; i < 30; i ++ ) {
+
+			stars = new THREE.PointCloud( starsGeometry[ i % 2 ], starsMaterials[ i % 6 ] );
+
+			stars.rotation.x = Math.random() * 6;
+			stars.rotation.y = Math.random() * 6;
+			stars.rotation.z = Math.random() * 6;
+
+			s = i * 10;
+			stars.scale.set( s, s, s );
+
+			stars.matrixAutoUpdate = false;
+			stars.updateMatrix();
+
+			scene.add( stars );
+
+		}
+		
+		sphere = new THREE.Mesh( ball, material2);
+		scene.add(sphere);
+		sphere.position.x = 10;
+		sphere.position.y = 50;
+		sphere.position.z = 130;
+
+        cube1 = new THREE.Mesh( box, material );
+        scene.add( cube1 );
+        cube1.position.x = -100;
+		cube1.position.y = -10;
+		cube1.position.z = -90;
+        
+        cube2 = new THREE.Mesh( box2, material );
+        scene.add( cube2 );
+        cube2.position.x = 100;
+		cube2.position.y = 30;
+		cube2.position.z = 70;
+		
+		var material2 = new THREE.LineBasicMaterial({
+        color: 0x0000ff
+    });
+    
+    var geometry = new THREE.Geometry();
+		geometry.vertices.push(new THREE.Vector3(-100, -10, -90));
+    	geometry.vertices.push(new THREE.Vector3(100, 30, 70));
+    	line = new THREE.Line(geometry, material2);
+    	line.name = "laser";
+    	scene.add(line);
+    
+    // initialize object to perform world/screen calculations
+	projector = new THREE.Projector();
+
+        renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize( (window.innerWidth-100 ), (window.innerHeight-100) );
+        
+        controls.addEventListener('change', render);
+
+        document.body.appendChild( renderer.domElement );
+        
+    }
+    
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+		
+        sphere.rotation.y += 0.001;     
+        
+        scene.remove( line );
+		
+        render();
+        
+    }
+    
+    function render() {
+    	renderer.render( scene, camera );
+    }
+    
+
+
+	
+</script>
+
+</body>
+
+
+</html>

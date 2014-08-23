@@ -1,0 +1,13 @@
+var ship = Object.create(NULL);
+defineProperty(ship, 'Name', "Unnamed");
+defineProperty(ship, 'Size', 1);
+defineProperty(ship, 'Hull', 100);
+defineProperty(ship, 'xPos', 0);
+defineProperty(ship, 'yPos', 0);
+defineProperty(ship, 'zPos', 0);
+defineProperty(ship, 'xVel', 0);
+defineProperty(ship, 'yVel', 0);
+defineProperty(ship, 'zVel', 0);
+defineProperty(ship, 'xRot', 0);
+defineProperty(ship, 'yRot', 0);
+defineProperty(ship, 'zRot', 0);
