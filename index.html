@@ -23,6 +23,9 @@
 </head>
 
 <body>
+	<div id="infobutton">
+			<a href=""><img src="res/i.png" border="0"></a>
+		</div>
 <script>
 
 	/* TODO
@@ -127,18 +130,23 @@
 		cube2.position.y = 30;
 		cube2.position.z = 70;
 		
+		physAdd(cube1);
+		cube1.mass = 10000;
+		
 		physAdd(cube2);
 		cube2.velocity.x = 100;
 		cube2.acceleration.x = -5;
-		cube2.spin.y += 0.1;
-		cube2.spin.x += 0.2;
+		cube2.spin.y = 0.1;
+		cube2.spin.x = 0.2;
+		cube2.mass = 1000;
 		
 		physAdd(sphere);
-		sphere.spin.y += 0.01;
+		sphere.spin.y = 0.01;
+		sphere.mass = 7e14;
 		
 		//// RENDERER ////
 		// Creates the render object, WebGL with antialiasing
-        renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer: scene});
+        renderer = new THREE.WebGLRenderer( {antialias:true, logarithmicDepthBuffer: scene} );
         renderer.setSize( window.innerWidth, window.innerHeight );
         
         // Add the renderer to the HTML 
