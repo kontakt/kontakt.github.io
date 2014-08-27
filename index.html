@@ -148,7 +148,7 @@
         // Dynamic window resizing
         window.addEventListener( 'resize', onWindowResize, false );
         // Fullscreen
-        addEventListener("click", function() {
+        addEventListener("keypress", function( p ) {
 		    var el = document.documentElement
 		        , rfs =
 		               el.requestFullScreen
