@@ -17,6 +17,7 @@ function physAdd(object){
 	// Add necessary vectors (x, y ,z)
 	object.velocity 	= new THREE.Vector3(0, 0, 0);
 	object.acceleration = new THREE.Vector3(0, 0, 0);
+	object.gravity		= new THREE.Vector3(0, 0, 0);
 	object.spin 		= new THREE.Vector3(0, 0, 0);
 	object.mass			= 0;
 	
@@ -32,9 +33,15 @@ function physUpdate(){
 	
 	// Update all physics objects
 	for (i = 0; i < physArray.length; i++){
+		for (j = 0; j < physArray.length; j++){
+			if (i != j){
+				 physGravity(physArray[i], physArray[j]);
+			}	
+		}	
+	}
+	for (i = 0; i < physArray.length; i++){
 		physPosition(physArray[i], delta);	
 	}
-	physGravity(physArray[0], physArray[2]);
 }
 
 // Returns a vector3 with time adjusted movement
@@ -51,10 +58,15 @@ function physPosition(object, delta){
 	object.position.y += (object.velocity.y * delta) + (0.5*object.acceleration.y*(Math.pow(delta,2)));
 	object.position.z += (object.velocity.z * delta) + (0.5*object.acceleration.z*(Math.pow(delta,2)));
 	
-	// Update Velocity
+	// Update Velocity (acceleration)
 	object.velocity.x += object.acceleration.x * delta;
 	object.velocity.y += object.acceleration.y * delta;
 	object.velocity.z += object.acceleration.z * delta;
+	
+	// Update Velocity (gravity)
+	object.velocity.x += object.gravity.x * delta;
+	object.velocity.y += object.gravity.y * delta;
+	object.velocity.z += object.gravity.z * delta;
 	
 	// Update Rotation
 	object.rotation.x += object.spin.x * delta; 
@@ -70,7 +82,7 @@ function physGravity(a, b){
 	grav = grav.subVectors(a.position, b.position);
 	grav = grav.normalize();
 	grav.multiplyScalar(-1 * A);
-	a.acceleration = grav;
+	a.gravity.add( grav );
 }
 
 //// Utilities ////
