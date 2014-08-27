@@ -3,39 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <title>Version 0.0</title>
+<link rel="stylesheet" type="text/css" href="index.css">
 
-<!-- Basic Engine --> 
+<!-- Three.js Engine --> 
 <script src="js/three.js"></script>
 
 <!-- Camera Controls --> 
 <script src="js/OrbitControls.js"></script>
 
+<!-- Stars --> 
+<script src="js/Stars.js"></script>
+
+<!-- Keyboard Controls -->
+<script src='js/THREEx.KeyboardState.js'></script>
+
+<!-- Custom Engine Extensions -->
+<script src='js/Engine.js'></script>
+
 </head>
 
 <body>
 <script>
+
 	/* TODO
 	 * 1. Build Ships js file
 	 * 2. Work out sighting mechanism
 	 * 3. Physics
 	 * 4. Timing events
-	 * 5. Break code into more js files
 	 */
 
-	// GLOBALS
+	// Make sure workers will work
+	if(typeof(Worker) !== "undefined") {
+   	var worker = true;
+	} else {
+    var worker = false;
+	} 
+
+	// Debugging 
+	var DEBUG = true;
+	
+	//// GLOBALS ////
 	// Declaring basic vars
     var scene, camera, renderer;
-    var line;
-    
-	var clock = new THREE.Clock();
+	var fullscreen = false;
+	var clock1 = new THREE.Clock();
   	
   	//// INITIALIZATION ////
   	// Function calls to start the program
+  	
     init();
     animate();
 
     function init() {
-		
+    	
+    	if (DEBUG) console.log("Init start");
+    	
+    	clock1.start();
+    	
+    	//// ENGINE ////
+    	physInit();
+    			
 		//// SCENE ////
 		// Create the scene
         scene = new THREE.Scene();
@@ -59,7 +86,7 @@
 		
 		//// MATERIALS ////
 		var material 	= new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-        var material2 	= new THREE.MeshLambertMaterial( { color: 0xff0000 } );
+        var material2 	= new THREE.MeshLambertMaterial( { color: 0xffffff } );
         var material3 	= new THREE.LineBasicMaterial( { color: 0x0000ff } );
     
 		
@@ -70,93 +97,49 @@
         var base 		= new THREE.SphereGeometry( 5000, 16, 16);
         var geometry	= new THREE.Geometry();
 		
+		//// SCENE ITEMS ////
 		// Sun
 		sun = new THREE.Mesh( base, material);
 		scene.add( sun );
 		sun.position.x = -1e5;		
 		
-		// Stars
-		var i, r = 1000, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
-
-		for ( i = 0; i < 250; i ++ ) {
-
-			var vertex = new THREE.Vector3();
-			vertex.x = Math.random() * 2 - 1;
-			vertex.y = Math.random() * 2 - 1;
-			vertex.z = Math.random() * 2 - 1;
-			vertex.multiplyScalar( r );
-
-			starsGeometry[ 0 ].vertices.push( vertex );
-
-		}
-
-		for ( i = 0; i < 1500; i ++ ) {
-
-			var vertex = new THREE.Vector3();
-			vertex.x = Math.random() * 2 - 1;
-			vertex.y = Math.random() * 2 - 1;
-			vertex.z = Math.random() * 2 - 1;
-			vertex.multiplyScalar( r );
-
-			starsGeometry[ 1 ].vertices.push( vertex );
-
-		}
-
-		var stars;
-		var starsMaterials = [
-			new THREE.PointCloudMaterial( { color: 0x555555, size: 2, sizeAttenuation: false } ),
-			new THREE.PointCloudMaterial( { color: 0x555555, size: 1, sizeAttenuation: false } ),
-			new THREE.PointCloudMaterial( { color: 0x333333, size: 2, sizeAttenuation: false } ),
-			new THREE.PointCloudMaterial( { color: 0x3a3a3a, size: 1, sizeAttenuation: false } ),
-			new THREE.PointCloudMaterial( { color: 0x1a1a1a, size: 2, sizeAttenuation: false } ),
-			new THREE.PointCloudMaterial( { color: 0x1a1a1a, size: 1, sizeAttenuation: false } )
-		];
-
-		for ( i = 10; i < 30; i ++ ) {
-
-			stars = new THREE.PointCloud( starsGeometry[ i % 2 ], starsMaterials[ i % 6 ] );
-
-			stars.rotation.x = Math.random() * 6;
-			stars.rotation.y = Math.random() * 6;
-			stars.rotation.z = Math.random() * 6;
-
-			s = i * 10;
-			stars.scale.set( s, s, s );
-
-			stars.matrixAutoUpdate = false;
-			stars.updateMatrix();
-
-			scene.add( stars );
-
-		}
+		// Add the stars
+		addStars();
 		
+		// Planet sphere
 		sphere = new THREE.Mesh( ball, material2);
 		scene.add(sphere);
 		sphere.position.x = 10;
 		sphere.position.y = 50;
 		sphere.position.z = 130;
-
+		
+		// Big cube
         cube1 = new THREE.Mesh( box, material );
         scene.add( cube1 );
         cube1.position.x = -100;
 		cube1.position.y = -10;
 		cube1.position.z = -90;
         
+        // Little cube
         cube2 = new THREE.Mesh( box2, material );
         scene.add( cube2 );
         cube2.position.x = 100;
 		cube2.position.y = 30;
 		cube2.position.z = 70;
 		
-		geometry.vertices.push(new THREE.Vector3(-100, -10, -90));
-    	geometry.vertices.push(new THREE.Vector3(100, 30, 70));
-    	line = new THREE.Line(geometry, material2);
-    	scene.add(line);
+		physAdd(cube2);
+		cube2.velocity.x = 100;
+		cube2.acceleration.x = -5;
+		cube2.spin.y += 0.1;
+		cube2.spin.x += 0.2;
+		
+		physAdd(sphere);
+		sphere.spin.y += 0.01;
 		
 		//// RENDERER ////
 		// Creates the render object, WebGL with antialiasing
-        renderer = new THREE.WebGLRenderer({antialias:true});
-        renderer.setSize( (window.innerWidth-25), (window.innerHeight-25) );
+        renderer = new THREE.WebGLRenderer({antialias:true, logarithmicDepthBuffer: scene});
+        renderer.setSize( window.innerWidth, window.innerHeight );
         
         // Add the renderer to the HTML 
         document.body.appendChild( renderer.domElement );
@@ -164,27 +147,50 @@
         //// LISTENERS ////
         // Dynamic window resizing
         window.addEventListener( 'resize', onWindowResize, false );
-
+        // Fullscreen
+        addEventListener("click", function() {
+		    var el = document.documentElement
+		        , rfs =
+		               el.requestFullScreen
+		            || el.webkitRequestFullScreen
+		            || el.mozRequestFullScreen
+		    ;
+		    rfs.call(el);
+		});
         
+        keyboard = new THREEx.KeyboardState();
+         
+        update();
+        
+        if (DEBUG) console.log("Init complete");
     }
     
+    // Update function to keep physics rolling
+    function update(){
+    	if( keyboard.pressed("Z") ) fire();
+    	physUpdate();
 
+		setTimeout("update()",16);
+	}
+
+	// Fires off a command when a key is pressed
+	function fire(){
+		 if (DEBUG) console.log("Pressed the key Z");    			
+	}
+	
     // All actions involving a visual change occur here
     function animate() {
-
+			
+		// Looping animation
         requestAnimationFrame( animate );
 		
-        sphere.rotation.y += 0.001;     
-        
-        scene.remove( line );
-		
+		// Render the scene
         render();
         
     }
     
     // Renders the scene after animate() is through
     function render() {
-    	
     	renderer.render( scene, camera );
     }
 	
@@ -193,12 +199,10 @@
 
 	    camera.aspect = window.innerWidth / window.innerHeight;
 	    camera.updateProjectionMatrix();
-	
-	    renderer.setSize( (window.innerWidth-25), (window.innerHeight-25) );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+	    if (DEBUG) console.log("Window resized");
 	}
 </script>
 
 </body>
-
-
 </html>
