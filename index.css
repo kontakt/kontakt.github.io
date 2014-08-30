@@ -7,3 +7,38 @@ body {
 	font-family:sans-serif;
 	text-align:center;
 }
+
+	#menu {
+				position: absolute;
+				bottom: 20px;
+				width: 100%;
+				text-align: center;
+			
+			}
+	#HUD {
+				position: absolute;
+				bottom: 50%;
+				text-align: center;
+    			color: rgba(127,255,255,0.75);
+				background: transparent;
+				outline: 1px solid rgba(127,255,255,0.75);
+				border: 15px;
+				padding: 5px 10px;
+    			margin: 10px; 
+			}
+	
+	button {
+				color: rgba(127,255,255,0.75);
+				background: transparent;
+				outline: 1px solid rgba(127,255,255,0.75);
+				border: 0px;
+				padding: 5px 10px;
+				cursor: pointer;
+			}
+	button:hover {
+				background-color: rgba(0,255,255,0.5);
+			}
+	button:active {
+				color: #000000;
+				background-color: rgba(0,255,255,0.75);
+			}

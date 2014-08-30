@@ -14,54 +14,56 @@
 <!-- Stars --> 
 <script src="js/Stars.js"></script>
 
-<!-- Keyboard Controls -->
-<script src='js/THREEx.KeyboardState.js'></script>
-
 <!-- Custom Engine Extensions -->
 <script src='js/Engine.js'></script>
 
+<!-- Framerate Monitoring -->
+<script src='js/Stats.js'></script>
+
 </head>
 
-<body>
-	<div id="infobutton">
-			<a href=""><img src="res/i.png" border="0"></a>
-		</div>
-<script>
-
-	/* TODO
-	 * 1. Build Ships js file
-	 * 2. Work out sighting mechanism
-	 * 3. Physics
-	 * 4. Timing events
-	 */
-
-	// Make sure workers will work
-	if(typeof(Worker) !== "undefined") {
-   	var worker = true;
-	} else {
-    var worker = false;
-	} 
-
-	// Debugging 
-	var DEBUG = true;
-	
+<script>	
 	//// GLOBALS ////
 	// Declaring basic vars
     var scene, camera, renderer;
 	var fullscreen = false;
+	var statsOn = true;
+	var multiplier = 1;
+	var physMode = "euler";
+	var traceLength = 1000;
 	var clock1 = new THREE.Clock();
+		
+	// Debugging 
+	var DEBUG = true;
   	
   	//// INITIALIZATION ////
   	// Function calls to start the program
-  	
-    init();
-    animate();
 
+	function start(){
+		init();
+		animate();
+	}
+	
     function init() {
     	
-    	if (DEBUG) console.log("Init start");
+    	if (DEBUG) console.debug("Init start");
     	
     	clock1.start();
+    	
+    	//// STATS ////
+    	statsInit();
+    	btnStats.onclick=function(){
+    		if(statsOn){
+	    		stats.domElement.style.visibility = 'hidden';
+	    		physStats.domElement.style.visibility = 'hidden';
+	    		statsOn = false;
+	    	}
+	    	else{
+	    		stats.domElement.style.visibility = 'visible';
+	    		physStats.domElement.style.visibility = 'visible';
+	    		statsOn = true;
+	    	}
+    		};
     	
     	//// ENGINE ////
     	physInit();
@@ -88,21 +90,21 @@
 		scene.add( light );
 		
 		//// MATERIALS ////
-		var material 	= new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-        var material2 	= new THREE.MeshLambertMaterial( { color: 0xffffff } );
-        var material3 	= new THREE.LineBasicMaterial( { color: 0x0000ff } );
-    
+			material 	= new THREE.MeshBasicMaterial	( { color: 0x19FF19, wireframe: true } );	
+        var material2 	= new THREE.MeshLambertMaterial	( { color: 0xffffff } );
+        	material3 	= new THREE.LineBasicMaterial	( { color: 0x0000ff } );
+        var	material4 	= new THREE.MeshBasicMaterial	( { color: 0xff0000, wireframe: true } );    
 		
 		//// GEOMETRIES ////
         var box			= new THREE.BoxGeometry( 10, 10, 10 );
         var box2 		= new THREE.BoxGeometry( 1, 1, 1 );
         var ball 		= new THREE.SphereGeometry( 25, 16, 16);
+        	point 		= new THREE.SphereGeometry( 1, 1, 1);
         var base 		= new THREE.SphereGeometry( 5000, 16, 16);
-        var geometry	= new THREE.Geometry();
 		
 		//// SCENE ITEMS ////
 		// Sun
-		sun = new THREE.Mesh( base, material);
+		sun = new THREE.Mesh( base, material4);
 		scene.add( sun );
 		sun.position.x = -1e5;		
 		
@@ -117,14 +119,14 @@
 		sphere.position.z = 130;
 		
 		// Big cube
-        cube1 = new THREE.Mesh( box, material );
+        cube1 = new THREE.Mesh( box, material4 );
         scene.add( cube1 );
         cube1.position.x = -100;
 		cube1.position.y = -10;
 		cube1.position.z = -90;
         
         // Little cube
-        cube2 = new THREE.Mesh( box2, material );
+        cube2 = new THREE.Mesh( box2, material4 );
         scene.add( cube2 );
         cube2.position.x = 100;
 		cube2.position.y = 30;
@@ -132,7 +134,7 @@
 		
 		physAdd(cube1);
 		cube1.mass = 10000;
-		cube1.velocity.x = 10;
+		cube1.velocity.x = 15;
 		
 		physAdd(cube2);
 		cube2.velocity.x = 100;
@@ -156,62 +158,77 @@
         //// LISTENERS ////
         // Dynamic window resizing
         window.addEventListener( 'resize', onWindowResize, false );
-        // Fullscreen
-        addEventListener("keypress", function( p ) {
-		    var el = document.documentElement
-		        , rfs =
-		               el.requestFullScreen
-		            || el.webkitRequestFullScreen
-		            || el.mozRequestFullScreen
-		    ;
-		    rfs.call(el);
-		});
         
-        keyboard = new THREEx.KeyboardState();
-         
+        drawLine();       
         update();
         
-        if (DEBUG) console.log("Init complete");
+        btnSpeed.onclick=function(){
+        	multiplier++;
+        	pSpeed.innerHTML = multiplier;
+        	};
+        
+        if (DEBUG) console.debug("Init complete");
+        
     }
     
     // Update function to keep physics rolling
     function update(){
-    	if( keyboard.pressed("Z") ) fire();
     	physUpdate();
-
-		setTimeout("update()",16);
-	}
-
-	// Fires off a command when a key is pressed
-	function fire(){
-		 if (DEBUG) console.log("Pressed the key Z");    			
+		setTimeout("update()",10);
 	}
 	
     // All actions involving a visual change occur here
-    function animate() {
-			
+    function animate() {	
+		
 		// Looping animation
         requestAnimationFrame( animate );
 		
 		// Render the scene
         render();
-        
+        stats.update();
     }
     
     // Renders the scene after animate() is through
     function render() {
     	renderer.render( scene, camera );
     }
-	
-	// Dynamically resizes the window based on current dimensions
-	function onWindowResize() {
-
-	    camera.aspect = window.innerWidth / window.innerHeight;
-	    camera.updateProjectionMatrix();
-		renderer.setSize( window.innerWidth, window.innerHeight );
-	    if (DEBUG) console.log("Window resized");
+    
+    // Function to toggle fullscreen
+    function toggleFullScreen() {
+	  if (!document.fullscreenElement &&    // alternative standard method
+	      !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
+	    if (document.documentElement.requestFullscreen) {
+	      document.documentElement.requestFullscreen();
+	    } else if (document.documentElement.msRequestFullscreen) {
+	      document.documentElement.msRequestFullscreen();
+	    } else if (document.documentElement.mozRequestFullScreen) {
+	      document.documentElement.mozRequestFullScreen();
+	    } else if (document.documentElement.webkitRequestFullscreen) {
+	      document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+	    }
+	  } else {
+	    if (document.exitFullscreen) {
+	      document.exitFullscreen();
+	    } else if (document.msExitFullscreen) {
+	      document.msExitFullscreen();
+	    } else if (document.mozCancelFullScreen) {
+	      document.mozCancelFullScreen();
+	    } else if (document.webkitExitFullscreen) {
+	      document.webkitExitFullscreen();
+	    }
+	  }
 	}
 </script>
+
+<body onload="start();">
+	<div id="menu">
+			<button id="btnSpeed">SPEED++</button>
+			<button id="btnStats">STATS</button>
+			<button id="btnFS" onclick="toggleFullScreen()">FULL SCREEN</button>
+			<button id="hud">HUD</button>
+	</div>
+	<div id="HUD">Time Dilation: x<span id="pSpeed">1</span>
+		</div>
 
 </body>
 </html>

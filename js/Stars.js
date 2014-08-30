@@ -53,5 +53,5 @@ function addStars() {
 			scene.add( stars );
 			
 		}
-		if (DEBUG) console.log("Stars added");
+		if (DEBUG) console.debug("Stars added");
 	}
