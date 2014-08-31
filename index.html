@@ -1,8 +1,8 @@
 <!DOCTYPE html>
+<title>Initializing</title>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Version 0.0</title>
 <link rel="stylesheet" type="text/css" href="index.css">
 
 <!-- Three.js Engine --> 
@@ -22,15 +22,16 @@
 
 </head>
 
-<script>	
+<script>
+
+	var version = '0.0';
+		
 	//// GLOBALS ////
 	// Declaring basic vars
     var scene, camera, renderer;
 	var fullscreen = false;
 	var statsOn = true;
-	var multiplier = 1;
-	var physMode = "euler";
-	var traceLength = 1000;
+	var FOV = 45;
 	var clock1 = new THREE.Clock();
 		
 	// Debugging 
@@ -74,14 +75,8 @@
 		
 		//// CAMERA ////
 		// Create the camera and set it 1000 units back
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1e7 );
+        camera = new THREE.PerspectiveCamera( FOV, window.innerWidth / window.innerHeight, 1, 1e7 );
         camera.position.z = 1000;
-        
-        // Set camera controls, limiting zoom to 10000 units
-		controls = new THREE.OrbitControls( camera );
-		controls.damping = 0.2;
-		controls.addEventListener( 'change', render );
-		controls.maxDistance = 1e4;
 		
 		//// LIGHTS ////
 		// For the sun
@@ -101,6 +96,10 @@
         var ball 		= new THREE.SphereGeometry( 25, 16, 16);
         	point 		= new THREE.SphereGeometry( 1, 1, 1);
         var base 		= new THREE.SphereGeometry( 5000, 16, 16);
+        
+        box.computeBoundingSphere();
+		box2.computeBoundingSphere();
+		ball.computeBoundingSphere();
 		
 		//// SCENE ITEMS ////
 		// Sun
@@ -110,6 +109,20 @@
 		
 		// Add the stars
 		addStars();
+		
+		for (var i=0; i < 100; i++)
+		{
+			rando = new THREE.Mesh( box, material4 );
+			rando.position.x = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
+			rando.position.y = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
+			rando.position.z = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
+			scene.add(rando);
+			physAdd(rando);
+			rando.velocity.x = (Math.random() * 10)*(Math.round(Math.random()) * 2 - 1);
+			rando.velocity.y = (Math.random() * 10)*(Math.round(Math.random()) * 2 - 1);
+			rando.velocity.z = (Math.random() * 10)*(Math.round(Math.random()) * 2 - 1);
+			rando.mass = Math.random() * (2000 - 1000) + 1000;
+		}
 		
 		// Planet sphere
 		sphere = new THREE.Mesh( ball, material2);
@@ -147,6 +160,8 @@
 		sphere.spin.y = 0.01;
 		sphere.mass = 7e14;
 		
+		HUDinit();
+		
 		//// RENDERER ////
 		// Creates the render object, WebGL with antialiasing
         renderer = new THREE.WebGLRenderer( {antialias:true, logarithmicDepthBuffer: scene} );
@@ -155,17 +170,26 @@
         // Add the renderer to the HTML 
         document.body.appendChild( renderer.domElement );
         
+         // Set camera controls, limiting zoom to 10000 units
+		controls = new THREE.OrbitControls( camera, renderer.domElement );
+		controls.damping = 0.2;
+		controls.addEventListener( 'change', render );
+		controls.maxDistance = 1e4;
+        
         //// LISTENERS ////
         // Dynamic window resizing
         window.addEventListener( 'resize', onWindowResize, false );
-        
-        drawLine();       
+       
         update();
-        
+        document.title = 'Version '+version;
         btnSpeed.onclick=function(){
         	multiplier++;
         	pSpeed.innerHTML = multiplier;
+        	pause = false;
         	};
+        	
+        var visible = vis();
+		vis(function(){focusChange();});
         
         if (DEBUG) console.debug("Init complete");
         
@@ -193,31 +217,15 @@
     	renderer.render( scene, camera );
     }
     
-    // Function to toggle fullscreen
-    function toggleFullScreen() {
-	  if (!document.fullscreenElement &&    // alternative standard method
-	      !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
-	    if (document.documentElement.requestFullscreen) {
-	      document.documentElement.requestFullscreen();
-	    } else if (document.documentElement.msRequestFullscreen) {
-	      document.documentElement.msRequestFullscreen();
-	    } else if (document.documentElement.mozRequestFullScreen) {
-	      document.documentElement.mozRequestFullScreen();
-	    } else if (document.documentElement.webkitRequestFullscreen) {
-	      document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-	    }
-	  } else {
-	    if (document.exitFullscreen) {
-	      document.exitFullscreen();
-	    } else if (document.msExitFullscreen) {
-	      document.msExitFullscreen();
-	    } else if (document.mozCancelFullScreen) {
-	      document.mozCancelFullScreen();
-	    } else if (document.webkitExitFullscreen) {
-	      document.webkitExitFullscreen();
-	    }
-	  }
-	}
+    function HUDinit(){
+    	var width = window.innerWidth/2; 	
+    	var div = document.getElementById('HUDTime');
+    	var x = div.offsetLeft + div.offsetWidth/2;
+    	var dist = width/Math.tan(Math.radians(FOV/2));
+    	var rot = Math.degrees(Math.atan((width-x)/dist));
+    	div.style.webkitTransform = "rotateY("+rot+"deg)";
+    	if (DEBUG) console.debug("HUD Resized");
+    }
 </script>
 
 <body onload="start();">
@@ -225,10 +233,16 @@
 			<button id="btnSpeed">SPEED++</button>
 			<button id="btnStats">STATS</button>
 			<button id="btnFS" onclick="toggleFullScreen()">FULL SCREEN</button>
-			<button id="hud">HUD</button>
+			<button id="btnPause" onclick="physPause()">PAUSE</button>
+			<button id="btnSettings" onclick="document.getElementById('settings').classList.toggle('closed');">SETTINGS</button>
 	</div>
-	<div id="HUD">Time Dilation: x<span id="pSpeed">1</span>
+	<div id="HUD" class="HUD">
+		<div id="HUDTime" class="HUDElement">Time Dilation: x<span id="pSpeed">1</span>
 		</div>
-
+	</div>
+	<div id="settings" class="slider">
+		 <p><input type="range" min="0" max="50" value="25" /></p>
+		  <input type="number" name="quantity" min="1" max="5">
+	</div>
 </body>
 </html>

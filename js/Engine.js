@@ -1,8 +1,20 @@
 //// PHYSICS ////
 
-// Constants
+//// Constants ////
 // Gravitational Constant
 var G = 6.674e-11;
+
+//// Control variables ////
+// Physics method
+var physMode = "euler";
+// Number of points in physics trace
+var traceLength = 100;
+// Distance between trace points squared
+var traceInterval = 1000;
+// Speed of physics simulation (seconds per second)
+var multiplier = 1;
+var multiSave = multiplier;
+var pause = false;
 
 // Init physics
 function physInit(){
@@ -13,30 +25,34 @@ function physInit(){
 	
 	// Array of all physics objects
 	physArray = [];
+	if (DEBUG) console.debug("Phys Init");
 }
 
 // Add and object to the array and initialize all extra vectors
-function physAdd(object){
+function physAdd( a ){
 	
 	// Add necessary vectors (x, y ,z)
-	object.velocity 	= new THREE.Vector3(0, 0, 0);
-	object.acceleration = new THREE.Vector3(0, 0, 0);
-	object.gravity		= new THREE.Vector3(0, 0, 0);
-	object.spin 		= new THREE.Vector3(0, 0, 0);
-	object.mass			= 0;
+	a.velocity 		= new THREE.Vector3(0, 0, 0);
+	a.acceleration 	= new THREE.Vector3(0, 0, 0);
+	a.gravity		= new THREE.Vector3(0, 0, 0);
+	a.spin 			= new THREE.Vector3(0, 0, 0);
+	a.mass			= 0;
 	
-	geometry		= new THREE.Geometry();
+	// Points in trace
+	a.tracePT		= new THREE.Geometry();
 	
 	for (i=0; i<traceLength; i++){
-    	geometry.vertices.push(object.position.clone());
+    	a.tracePT.vertices.push(a.position.clone());
     }    
     
-    object.traceLine 	= new THREE.Line(geometry, material3);
-    object.traceLine.geometry.dynamic = true;  
-    scene.add(object.traceLine);
-	
+    // Line for trace
+    a.traceLine 	= new THREE.Line(a.tracePT, material3);
+    a.traceLine.geometry.dynamic = true;  
+    a.traceLine.frustumCulled = false;
+    scene.add(a.traceLine);
+
 	// Add to the array
-	physArray.push(object);
+	physArray.push(a);
 }
 
 // Steps all physics objects
@@ -51,17 +67,20 @@ function physUpdate(){
 	// Update positions
 	if(physMode == "verlet"){
 		for (i = 0; i < physArray.length; i++){
-			physPositionVerlet(physArray[i], delta);	
+			physPositionVerlet(physArray[i], delta);
+			drawLine(physArray[i]);	
 		}
 	}
 	else if(physMode == "RK4"){
 		for (i = 0; i < physArray.length; i++){
-			physPositionRK4(physArray[i], delta);	
+			physPositionRK4(physArray[i], delta);
+			drawLine(physArray[i]);	
 		}
 	}
 	else {
 		for (i = 0; i < physArray.length; i++){
-			physPositionEuler(physArray[i], delta);	
+			physPositionEuler(physArray[i], delta);
+			drawLine(physArray[i]);	
 		}
 	}
 	// Update physics FPS
@@ -79,47 +98,53 @@ function physAcceleration(){
 	}
 }
 
-// Returns a vector3 with time adjusted movement
-function addVector(vector, delta){
-	var tmp = vector.clone();
-	tmp.multiplyScalar(delta);
-	return tmp;
+function physPause(){
+		if(pause){
+			multiplier = multiSave;
+			multiSave = 0;
+			pause = false;
+		}
+		else{
+			multiSave = multiplier;
+			multiplier = 0;
+			pause = true;
+		}
 }
 
 //// KINEMATICS ////
 // Euler method
-function physPositionEuler(object, delta){	
+function physPositionEuler(a, delta){	
 	// Update Velocity (acceleration)
-	object.velocity.x += object.acceleration.x * delta;
-	object.velocity.y += object.acceleration.y * delta;
-	object.velocity.z += object.acceleration.z * delta;
+	a.velocity.x += a.acceleration.x * delta;
+	a.velocity.y += a.acceleration.y * delta;
+	a.velocity.z += a.acceleration.z * delta;
 	
 	// Update Velocity (gravity)
-	object.velocity.x += object.gravity.x * delta;
-	object.velocity.y += object.gravity.y * delta;
-	object.velocity.z += object.gravity.z * delta;
+	a.velocity.x += a.gravity.x * delta;
+	a.velocity.y += a.gravity.y * delta;
+	a.velocity.z += a.gravity.z * delta;
 	
 	// Update Position
-	object.position.x += object.velocity.x * delta;
-	object.position.y += object.velocity.y * delta;
-	object.position.z += object.velocity.z * delta;
+	a.position.x += a.velocity.x * delta;
+	a.position.y += a.velocity.y * delta;
+	a.position.z += a.velocity.z * delta;
 	
 	// Update Rotation
-	object.rotation.x += object.spin.x * delta; 
-	object.rotation.y += object.spin.y * delta; 
-	object.rotation.z += object.spin.z * delta; 
+	a.rotation.x += a.spin.x * delta; 
+	a.rotation.y += a.spin.y * delta; 
+	a.rotation.z += a.spin.z * delta; 
 }
 
 // Verlet Method
-function physPositionVerlet(object, delta){
+function physPositionVerlet(a, delta){
 	//todo
-	console.warn("Verlet physics not implemented yet!");
+	throw "Verlet physics not implemented yet!";
 }
 
 // Runge-Kutta Method
-function physPositionRK4(object, delta){
+function physPositionRK4(a, delta){
 	//todo
-	console.warn("Runge-Kutta physics not implemented yet!");
+	throw "Runge-Kutta physics not implemented yet!";
 }
 
 // Calculates the gravitational pull between two objects 
@@ -127,34 +152,49 @@ function physGravity(a, b){
 	var grav = new THREE.Vector3(0, 0, 0);
 	grav = grav.subVectors(a.position, b.position);
 	var r = grav.lengthSq();
+	var as = a.geometry.boundingSphere.radius;
+	var bs = b.geometry.boundingSphere.radius;
+	var index;
+	if (Math.sqrt(r) <= as+bs) {
+		if ( as <= bs ){
+			scene.remove(a);
+			index = physArray.indexOf(a);
+			physArray.splice(index, 1);
+			if ( DEBUG ) console.debug("Object removed");
+		}
+		else {
+			scene.remove(b);
+			index = physArray.indexOf(b);
+			physArray.splice(index, 1);
+			if ( DEBUG ) console.debug("Object removed");
+		}
+	}
 	var A = (G)*(b.mass)/(r);
 	grav = grav.normalize();
 	grav.multiplyScalar(-A);
-	a.gravity = grav;
+	a.gravity.copy( grav );
+	
 }
 
 //// LINES ////
-function drawLine(){
-		// obsolete dot method
-		// dot = new THREE.Mesh( point, material);
-		// scene.add( dot );
-		// dot.position.copy(cube1.position);
-		
+function drawLine(a){
+	var tmp = new THREE.Vector3;
+	tmp.subVectors(a.position, a.traceLine.geometry.vertices[traceLength-2]);
+	if(tmp.lengthSq() > traceInterval){
 		// Delete first element
-		cube1.traceLine.geometry.vertices.push(cube1.traceLine.geometry.vertices.shift());
+		a.traceLine.geometry.vertices.push(a.traceLine.geometry.vertices.shift());
     	// Append to line
-    	cube1.traceLine.geometry.vertices[traceLength-1].copy(cube1.position); 
-    	cube1.traceLine.geometry.verticesNeedUpdate = true;
+    	a.traceLine.geometry.vertices[traceLength-1].copy(a.position); 
+    	a.traceLine.geometry.verticesNeedUpdate = true;
+    }
+    else {
+    	a.traceLine.geometry.vertices[traceLength-1].copy(a.position);
+    	a.traceLine.geometry.verticesNeedUpdate = true;
+    }
     	
-    	setTimeout("drawLine()",1000);
 }
 
 //// Utilities ////
-
-// Calculates the distance between two objects
-function distanceFunction(a, b){
-	return Math.pow(a.position.x - b.position.x, 2) +  Math.pow(a.position.y - b.position.y, 2) +  Math.pow(a.position.z - b.position.z, 2);
-}
 
 // Dynamically resizes the window based on current dimensions
 function onWindowResize() {
@@ -162,6 +202,7 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	HUDinit();
     if (DEBUG) console.debug("Window resized");
 }
 	
@@ -172,15 +213,86 @@ function statsInit(){
 	
 	physStats = new Stats();
 	physStats.setMode(0); // 0: fps, 1: ms
-		
+	
+	// Framerate for draw
 	stats.domElement.style.position = 'absolute';
 	stats.domElement.style.left = '0px';
 	stats.domElement.style.top = '0px';
 	
+	// Framerate for Physics
 	physStats.domElement.style.position = 'absolute';
 	physStats.domElement.style.left = '0px';
 	physStats.domElement.style.top = '50px';
 
 	document.body.appendChild( stats.domElement );
 	document.body.appendChild( physStats.domElement );
+	if (DEBUG) console.debug("Stats Init");
 }
+
+// Window Visibility
+var vis = (function(){
+    var stateKey, eventKey, keys = {
+        hidden: "visibilitychange",
+        webkitHidden: "webkitvisibilitychange",
+        mozHidden: "mozvisibilitychange",
+        msHidden: "msvisibilitychange"
+    };
+    for (stateKey in keys) {
+        if (stateKey in document) {
+            eventKey = keys[stateKey];
+            break;
+        }
+    }
+    return function(c) {
+        if (c) document.addEventListener(eventKey, c);
+        return !document[stateKey];
+    }
+})();
+
+function focusChange(){
+	if(vis()){
+		document.title = 'Version '+version;
+		physPause();
+	}
+	else{
+		document.title = 'Version '+version+' - PAUSE';
+		physPause();
+	}
+
+}
+
+// Function to toggle fullscreen
+    function toggleFullScreen() {
+	  if (!document.fullscreenElement &&    // alternative standard method
+	      !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement ) {  // current working methods
+	    if (document.documentElement.requestFullscreen) {
+	      document.documentElement.requestFullscreen();
+	    } else if (document.documentElement.msRequestFullscreen) {
+	      document.documentElement.msRequestFullscreen();
+	    } else if (document.documentElement.mozRequestFullScreen) {
+	      document.documentElement.mozRequestFullScreen();
+	    } else if (document.documentElement.webkitRequestFullscreen) {
+	      document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+	    }
+	  } else {
+	    if (document.exitFullscreen) {
+	      document.exitFullscreen();
+	    } else if (document.msExitFullscreen) {
+	      document.msExitFullscreen();
+	    } else if (document.mozCancelFullScreen) {
+	      document.mozCancelFullScreen();
+	    } else if (document.webkitExitFullscreen) {
+	      document.webkitExitFullscreen();
+	    }
+	  }
+	}
+	
+// Converts from degrees to radians.
+Math.radians = function(degrees) {
+  return degrees * Math.PI / 180;
+};
+ 
+// Converts from radians to degrees.
+Math.degrees = function(radians) {
+  return radians * 180 / Math.PI;
+};
