@@ -1,6 +1,6 @@
 // Creates stars and adds them to the scene
 function addStars() {
-		var i, r = 1000, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
+		var i, r = 2*AU, starsGeometry = [ new THREE.Geometry(), new THREE.Geometry() ];
 
 		for ( i = 0; i < 250; i ++ ) {
 

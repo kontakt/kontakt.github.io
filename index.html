@@ -23,11 +23,16 @@
 <!-- Ship Capabilities -->
 <script src='js/Ships.js'></script>
 
+<!-- Interface -->
+<script src='js/UI.js'></script>
+
 </head>
 
 <script>
 
 	var version = '0.0';
+	// 1 unit = 1 km, kg
+	
 		
 	//// GLOBALS ////
 	// Declaring basic vars
@@ -78,14 +83,10 @@
 		
 		//// CAMERA ////
 		// Create the camera and set it 1000 units back
-        camera = new THREE.PerspectiveCamera( FOV, window.innerWidth / window.innerHeight, 1, 1e7 );
-        camera.position.z = 1000;
-		
-		//// LIGHTS ////
-		// For the sun
-		var light = new THREE.PointLight( 0xff0000, 1, 0 ); 
-		light.position.set( -1e5, 50, 0 ); 
-		scene.add( light );
+        camera = new THREE.PerspectiveCamera( FOV, window.innerWidth / window.innerHeight, 1, 1e50 );
+        camera.position.z = 150000;
+        
+        camera2 = new THREE.PerspectiveCamera( 20, 1, 1, 1e50 );
 		
 		//// MATERIALS ////
 			material 	= new THREE.MeshBasicMaterial	( { color: 0x19FF19, wireframe: true } );	
@@ -96,9 +97,9 @@
 		//// GEOMETRIES ////
         var box			= new THREE.BoxGeometry( 10, 10, 10 );
         var box2 		= new THREE.BoxGeometry( 1, 1, 1 );
-        var ball 		= new THREE.SphereGeometry( 25, 16, 16);
+        var ball 		= new THREE.SphereGeometry( 12742, 32, 32);
         	point 		= new THREE.SphereGeometry( 1, 1, 1);
-        var base 		= new THREE.SphereGeometry( 5000, 16, 16);
+        var base 		= new THREE.SphereGeometry( 1391684, 8, 8);
         
         box.computeBoundingSphere();
 		box2.computeBoundingSphere();
@@ -108,17 +109,23 @@
 		// Sun
 		sun = new THREE.Mesh( base, material4);
 		scene.add( sun );
-		sun.position.x = -1e5;		
+		sun.position.x = -AU;		
+		
+		//// LIGHTS ////
+		// For the sun
+		var light = new THREE.PointLight( 0xff0000, 1, 0 ); 
+		light.position.copy( sun.position ); 
+		scene.add( light );
 		
 		// Add the stars
 		addStars();
 		
-		for (var i=0; i < 100; i++)
+		for (var i=0; i < 10; i++)
 		{
 			rando = new THREE.Mesh( box2, material4 );
-			rando.position.x = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
-			rando.position.y = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
-			rando.position.z = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
+			rando.position.x = (Math.random() * (36000) + 14000)*(Math.round(Math.random()) * 2 - 1);
+			rando.position.y = (Math.random() * (36000) + 14000)*(Math.round(Math.random()) * 2 - 1);
+			rando.position.z = (Math.random() * (36000) + 14000)*(Math.round(Math.random()) * 2 - 1);
 			rando.name = "Random object "+i;
 			scene.add(rando);
 			physAdd(rando);
@@ -140,7 +147,7 @@
         cube1 = new THREE.Mesh( box, material4 );
         scene.add( cube1 );
         cube1.name = "Orbiter";
-        cube1.position.x = -100;
+        cube1.position.x = -17000;
 		cube1.position.y = -10;
 		cube1.position.z = -90;
         
@@ -148,13 +155,13 @@
         cube2 = new THREE.Mesh( box2, material4 );
         scene.add( cube2 );
         cube2.name = "Probe";
-        cube2.position.x = 1000;
+        cube2.position.x = 20000;
 		cube2.position.y = 300;
 		cube2.position.z = 700;
 		
 		physAdd(cube1);
 		cube1.mass = 10000;
-		cube1.velocity.x = 15;
+		cube1.velocity.z = 150;
 		 
 		physAdd(cube2);
 		cube2.spin.y = 0.1;
@@ -162,8 +169,8 @@
 		cube2.mass = 100;
 		
 		physAdd(sphere);
-		sphere.spin.y = 0.01;
-		sphere.mass = 7e14;
+		sphere.spin.y = 7.27E-5;
+		sphere.mass = 6E24;
 		
 		HUDinit();
 		
@@ -175,17 +182,17 @@
         // Add the renderer to the HTML 
         document.body.appendChild( renderer.domElement );
         
-         // Set camera controls, limiting zoom to 10000 units
+        // Set camera controls, limiting zoom to 10,000,000 units
 		controls = new THREE.OrbitControls( camera, renderer.domElement );
 		controls.damping = 0.2;
 		controls.addEventListener( 'change', render );
-		controls.maxDistance = 1e4;
+		controls.maxDistance = 1e7;
         
         //// LISTENERS ////
         // Dynamic window resizing
         window.addEventListener( 'resize', onWindowResize, false );
        
-        update();
+        physUpdate();
         document.title = 'Version '+version;
         btnSpeed.onclick=function(){
         	multiplier++;
@@ -199,12 +206,6 @@
         if (DEBUG) console.debug("Init complete");
         
     }
-    
-    // Update function to keep physics rolling
-    function update(){
-    	physUpdate();
-		setTimeout("update()",10);
-	}
 	
     // All actions involving a visual change occur here
     function animate() {	
@@ -219,18 +220,20 @@
     
     // Renders the scene after animate() is through
     function render() {
+    	camera2.position.copy(cube1.position);
+    	camera2.position.z -= 500;
+    	camera2.lookAt(cube1.position);
+        renderer.setSize( window.innerWidth, window.innerHeight );
+    	renderer.setViewport( 0, 0, window.innerWidth, window.innerHeight );
+    	renderer.setScissor( 0, 0, window.innerWidth, window.innerHeight );
+    	renderer.enableScissorTest ( true );
     	renderer.render( scene, camera );
+    	renderer.setViewport( 0, 0, 200, 200 );
+    	renderer.setScissor( 0, 0, 200, 200 );
+    	renderer.enableScissorTest ( true );
+    	renderer.render( scene, camera2 );
     }
     
-    function HUDinit(){
-    	var width = window.innerWidth/2; 	
-    	var div = document.getElementById('HUDTime');
-    	var x = div.offsetLeft + div.offsetWidth/2;
-    	var dist = width/Math.tan(Math.radians(FOV/2));
-    	var rot = Math.degrees(Math.atan((width-x)/dist));
-    	div.style.webkitTransform = "rotateY("+rot+"deg)";
-    	if (DEBUG) console.debug("HUD Resized");
-    }
 </script>
 
 <body onload="start();">

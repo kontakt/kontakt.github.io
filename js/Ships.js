@@ -1,4 +1,6 @@
 
+var SHIP = { REVISION: '1' };
+
 // Determines the thrust vector for an intercept
 function shipPilot ( a, b ){
 	var targetVel = new THREE.Vector3();
@@ -34,6 +36,7 @@ function missileTrack ( a, b ){
 	rotation.crossVectors( targetVel, targetPos );
 	rotation.divideScalar( targetPos.lengthSq() );
 	
+	
 	// Get the direction to the target and set your acceleration
 	targetVel.multiplyScalar( N );
 	
@@ -41,3 +44,13 @@ function missileTrack ( a, b ){
 	acceleration.crossVectors( rotation, targetVel );
 	a.acceleration.copy( acceleration );
 }
+
+SHIP.Missile = function () {
+	
+};
+
+SHIP.Missile.prototype = {
+	
+	constructor: SHIP.Missile,
+	
+};
