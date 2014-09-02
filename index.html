@@ -20,6 +20,9 @@
 <!-- Framerate Monitoring -->
 <script src='js/Stats.js'></script>
 
+<!-- Ship Capabilities -->
+<script src='js/Ships.js'></script>
+
 </head>
 
 <script>
@@ -112,10 +115,11 @@
 		
 		for (var i=0; i < 100; i++)
 		{
-			rando = new THREE.Mesh( box, material4 );
+			rando = new THREE.Mesh( box2, material4 );
 			rando.position.x = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
 			rando.position.y = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
 			rando.position.z = (Math.random() * (1000 - 60) + 60)*(Math.round(Math.random()) * 2 - 1);
+			rando.name = "Random object "+i;
 			scene.add(rando);
 			physAdd(rando);
 			rando.velocity.x = (Math.random() * 10)*(Math.round(Math.random()) * 2 - 1);
@@ -127,6 +131,7 @@
 		// Planet sphere
 		sphere = new THREE.Mesh( ball, material2);
 		scene.add(sphere);
+		sphere.name = "Planet";
 		sphere.position.x = 10;
 		sphere.position.y = 50;
 		sphere.position.z = 130;
@@ -134,6 +139,7 @@
 		// Big cube
         cube1 = new THREE.Mesh( box, material4 );
         scene.add( cube1 );
+        cube1.name = "Orbiter";
         cube1.position.x = -100;
 		cube1.position.y = -10;
 		cube1.position.z = -90;
@@ -141,20 +147,19 @@
         // Little cube
         cube2 = new THREE.Mesh( box2, material4 );
         scene.add( cube2 );
-        cube2.position.x = 100;
-		cube2.position.y = 30;
-		cube2.position.z = 70;
+        cube2.name = "Probe";
+        cube2.position.x = 1000;
+		cube2.position.y = 300;
+		cube2.position.z = 700;
 		
 		physAdd(cube1);
 		cube1.mass = 10000;
 		cube1.velocity.x = 15;
-		
+		 
 		physAdd(cube2);
-		cube2.velocity.x = 100;
-		cube2.acceleration.x = -5;
 		cube2.spin.y = 0.1;
 		cube2.spin.x = 0.2;
-		cube2.mass = 1000;
+		cube2.mass = 100;
 		
 		physAdd(sphere);
 		sphere.spin.y = 0.01;
